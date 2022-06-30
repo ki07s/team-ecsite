@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+
+<link href="/css/reset.css" th:href="@{/css/reset.css}" rel="stylesheet" />
+<link href="/css/style.css" th:href="@{/css/style.css}" rel="stylesheet" />
+
+<title>マイラーメン～私が選ぶ、私だけのラーメン～</title>
+</head>
+<body>
+
+<header th:insert="fragments/page_header::pageHeader"></header>
+
+<main>
+
+	<div class="container cart">
+		
+		<div class="completed hidden">
+			<p class="info">決済が完了しました。</p>
+		</div>
+		
+		<th:block th:if = "${destinations == null || destinations.size() == 0}">
+			<div>
+				<p class="info">宛先情報がありません。新規登録してください。</p>
+			</div>
+			<div class="buttonArea">
+				<form name="destinationForm" action="/brown/destination/">
+					<button type="submit">新規宛先</button>
+				</form>
+			</div>
+		</th:block>
+		
+		<th:block th:unless = "${destinations == null || destinations.size() == 0}">
+			<div>
+				<h2>宛先を選択し、決済を完了します。</h2>
+				<p class="info">宛先の新規登録、削除も可能です。</p>
+			</div>
+			<table class="destination">
+				<tr>
+					<th>選択</th><th>宛先氏名</th><th>住所</th><th>電話番号</th>
+				</tr>
+				<tbody>
+					<tr th:each="destination, st: ${destinations}">
+						<td>
+							<input type="radio" name="id" th:checked="${st.index==0}" th:value="${destination.id}" class="radio" />
+						</td>
+						<td>
+							<span th:text="${destination.familyName}"></span><span>　</span><span th:text="${destination.firstName}"></span>
+						</td>
+						<td th:text="${destination.address}" />
+						<td th:text="${destination.telNumber}" />
+					</tr>
+				</tbody>
+			</table>
+			<div class="buttonArea">
+				<button id="deleteBtn">削除</button>
+				<form name="destinationForm" action="/brown/destination/">
+					<button type="submit">新規宛先</button>
+				</form>
+				<button id="buyBtn">決済</button>
+			</div>
+		</th:block>
+	
+	</div>
+
+</main>
+
+<script>
+$(() => {
+	$('#deleteBtn').on('click', () => {
+		let checked = $('.radio:checked');
+		let destinationId = $(checked).val();
+		removeDestination(destinationId, checked);
+	});
+	
+	$('#buyBtn').on('click', () => {
+		let checked = $('.radio:checked');
+		let destinationId = $(checked).val();
+		settlement(destinationId);
+	});
+
+});
+
+/**
+ * 宛先情報を削除する。
+ * @param destinationId 宛先情報ID
+ * @param checked 選択されたラジオボタンのオブジェクト
+ */
+function removeDestination(destinationId, checked) {
+	$.ajax({
+		type: 'POST',
+		url: '/brown/destination/delete',
+		data: JSON.stringify({'destinationId': destinationId}),
+		contentType: 'application/json',
+	})
+	.then((result) => {
+		$(checked).parent().parent().remove();
+		let radioList = $('.radio');
+		if (radioList.length == 0) {
+			location.replace('/brown/settlement/');
+		}
+		radioList[0].checked = true;
+	}, () => {
+		alert('Error: ajax connection failed.');
+	});
+}
+</script>
+
+</body>
+</html>
